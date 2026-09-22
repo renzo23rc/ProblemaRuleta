@@ -126,8 +126,8 @@ void resolveBet(Player *p, int bet, int won)
     }
 }
 
-// Inicializo un jugador con su nombre, su apuesta y el cuaderno inicial
-void initPlayer(Player *p, char name, Bet tipoApuesta)
+// Creo a los jugadores
+void createPlayer(Player *p, char name, Bet tipoApuesta)
 {
     p->playerchar = name;
     p->bet = tipoApuesta;
@@ -135,45 +135,50 @@ void initPlayer(Player *p, char name, Bet tipoApuesta)
     resetNotebook(p);
 }
 
-// Devuelvo 1 si el jugador gano con el numero que salio, 0 si perdio
+// Seteo cada tipo de apuesta con su funcion correspondiente
 int playerWins(const Player *p, int number)
 {
     switch (p->bet)
     {
-    case BET_RED:   return isRed(number);
-    case BET_BLACK: return isBlack(number);
-    case BET_HIGH:  return isHigh(number);
-    case BET_LOW:   return isLow(number);
-    case BET_ODD:   return isOdd(number);
-    case BET_EVEN:  return isEven(number);
+    case BET_RED:
+        return isRed(number);
+    case BET_BLACK:
+        return isBlack(number);
+    case BET_HIGH:
+        return isHigh(number);
+    case BET_LOW:
+        return isLow(number);
+    case BET_ODD:
+        return isOdd(number);
+    case BET_EVEN:
+        return isEven(number);
     }
     return 0;
 }
 
 int main()
 {
-    // semilla para que rand() de resultados distintos en cada corrida
+
     srand((unsigned)time(NULL));
 
-    // los 6 jugadores: A=rojo, B=negro, C=alto, D=bajo, E=impar, F=par
-    Player players[NUM_PLAYERS];
-    char names[NUM_PLAYERS] = {'A', 'B', 'C', 'D', 'E', 'F'};
-    Bet types[NUM_PLAYERS] = {BET_RED, BET_BLACK, BET_HIGH, BET_LOW, BET_ODD, BET_EVEN};
+    Player players[5];
+    char names[5] = {'A', 'B', 'C', 'D', 'E', 'F'};
+    Bet types[5] = {BET_RED, BET_BLACK, BET_HIGH, BET_LOW, BET_ODD, BET_EVEN};
 
     for (int i = 0; i < NUM_PLAYERS; i++)
     {
-        initPlayer(&players[i], names[i], types[i]);
+        createPlayer(&players[i], names[i], types[i]);
     }
 
-    // 10000 tiradas
-    for (int spin = 0; spin < NUM_SPINS; spin++)
+    // 10000 tiradas, siento que es para nada eficiente, lo tome de manera literal
+    for (int spin = 0; spin < 10000; spin++)
     {
         int number = spinRoulette();
         for (int i = 0; i < NUM_PLAYERS; i++)
         {
             int bet = calcBet(&players[i]);
-            // si la apuesta sale de los limites, reinicio el cuaderno
-            if (bet > MAX_BET || bet < MIN_BET)
+            // Reseteo si la apuesta sale del minimo
+            if (bet < MIN_BET)
             {
                 resetNotebook(&players[i]);
                 bet = calcBet(&players[i]);
@@ -182,10 +187,9 @@ int main()
             resolveBet(&players[i], bet, won);
         }
     }
-
-    // reporte final: saldo por jugador y total del equipo
+    // Sumo los balances y los imprimo
     int teamBalance = 0;
-    for (int i = 0; i < NUM_PLAYERS; i++)
+    for (int i = 0; i < 5; i++)
     {
         teamBalance += players[i].balance;
         printf("Jugador %c balance: %d\n", players[i].playerchar, players[i].balance);
