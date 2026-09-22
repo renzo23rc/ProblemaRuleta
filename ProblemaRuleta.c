@@ -1,9 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 // Defino los limtes de manera global, podria hacerlo para cada player pero prefiero q sean globales
 #define MAX_BET 4000
 #define MIN_BET 5
+#define NUM_PLAYERS 6
+#define NUM_SPINS 10000
+#define MAX_NOTEBOOK 4096
 
 // Enumero los tipos de apuestas
 typedef enum
@@ -21,7 +25,7 @@ typedef struct
 {
     char playerchar;
     Bet bet;
-    int notebook[100]; // Tengo duda en cual seria el tamano correcto arbitrariamente elegi 100
+    int notebook[MAX_NOTEBOOK]; // el cuaderno crece hasta ~4000 numeros, por eso 4096
     int count;
     int balance;
 } Player;
@@ -65,10 +69,20 @@ int isEven(int n)
     return n >= 1 && n <= 36 && n % 2 == 0;
 }
 
-// Jamas use esta funcion, es la q genera numeros aleatorios
+// Genera un numero aleatorio entre 0 y 36
 int spinRoulette(void)
 {
     return rand() % 37;
+}
+
+// Reinicio hacia la notebook inicial
+void resetNotebook(Player *p)
+{
+    p->notebook[0] = 1;
+    p->notebook[1] = 2;
+    p->notebook[2] = 3;
+    p->notebook[3] = 4;
+    p->count = 4;
 }
 
 int calcBet(const Player *p)
@@ -112,18 +126,84 @@ void resolveBet(Player *p, int bet, int won)
     }
 }
 
-// Reinicio hacia la notebook inicial
-void resetNotebook(Player *p)
+// Inicializo un jugador con su nombre, su apuesta y el cuaderno inicial
+void initPlayer(Player *p, char name, Bet tipoApuesta)
 {
-    p->notebook[0] = 1;
-    p->notebook[1] = 2;
-    p->notebook[2] = 3;
-    p->notebook[3] = 4;
-    p->count = 4;
+    p->playerchar = name;
+    p->bet = tipoApuesta;
+    p->balance = 0;
+    resetNotebook(p);
+}
+
+// Devuelvo 1 si el jugador gano con el numero que salio, 0 si perdio
+int playerWins(const Player *p, int number)
+{
+    switch (p->bet)
+    {
+    case BET_RED:   return isRed(number);
+    case BET_BLACK: return isBlack(number);
+    case BET_HIGH:  return isHigh(number);
+    case BET_LOW:   return isLow(number);
+    case BET_ODD:   return isOdd(number);
+    case BET_EVEN:  return isEven(number);
+    }
+    return 0;
 }
 
 int main()
 {
+    // semilla para que rand() de resultados distintos en cada corrida
+    srand((unsigned)time(NULL));
+
+    // los 6 jugadores: A=rojo, B=negro, C=alto, D=bajo, E=impar, F=par
+    Player players[NUM_PLAYERS];
+    char names[NUM_PLAYERS] = {'A', 'B', 'C', 'D', 'E', 'F'};
+    Bet types[NUM_PLAYERS] = {BET_RED, BET_BLACK, BET_HIGH, BET_LOW, BET_ODD, BET_EVEN};
+
+    for (int i = 0; i < NUM_PLAYERS; i++)
+    {
+        initPlayer(&players[i], names[i], types[i]);
+    }
+
+    // 10000 tiradas
+    for (int spin = 0; spin < NUM_SPINS; spin++)
+    {
+        int number = spinRoulette();
+        for (int i = 0; i < NUM_PLAYERS; i++)
+        {
+            int bet = calcBet(&players[i]);
+            // si la apuesta sale de los limites, reinicio el cuaderno
+            if (bet > MAX_BET || bet < MIN_BET)
+            {
+                resetNotebook(&players[i]);
+                bet = calcBet(&players[i]);
+            }
+            int won = playerWins(&players[i], number);
+            resolveBet(&players[i], bet, won);
+        }
+    }
+
+    // reporte final: saldo por jugador y total del equipo
+    int teamBalance = 0;
+    for (int i = 0; i < NUM_PLAYERS; i++)
+    {
+        teamBalance += players[i].balance;
+        printf("Jugador %c balance: %d\n", players[i].playerchar, players[i].balance);
+    }
+
+    printf("Balance del equipo: %d\n", teamBalance);
+    if (teamBalance > 0)
+    {
+        printf("El equipo gano dinero.\n");
+    }
+    else if (teamBalance < 0)
+    {
+        printf("El equipo perdio dinero.\n");
+    }
+    else
+    {
+        printf("El equipo quedo en cero.\n");
+    }
 
     return 0;
 }
